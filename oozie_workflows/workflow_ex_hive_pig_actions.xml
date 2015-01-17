@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<workflow-app xmlns="uri:oozie:workflow:0.4" name="pig-wf">
+<credentials>
+<credential name='hive_credentials' type='hcat'>
+<property>
+<name>hcat.metastore.uri</name>
+<value>thrift://hdp2amb001.amb1.yi.com:9083</value>
+</property>
+<property>
+<name>hcat.metastore.principal</name>
+<value>hive/_HOST@HDP2.YISEC2.COM</value>
+</property>
+</credential>
+</credentials>
+
+
+    <start to="fs-node"/>
+    <action name="pig-node" cred="hive_credentials">
+    <pig >
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <prepare>
+                <delete path="${nameNode}/user/${wf:user()}/${examplesRoot}/output-data/pig"/>
+            </prepare>
+            <configuration>
+                <property>
+                    <name>mapred.job.queue.name</name>
+                    <value>${queueName}</value>
+                </property>
+                <property>
+                    <name>mapred.compress.map.output</name>
+                    <value>true</value>
+                </property>
+            </configuration>
+            <script>id.pig</script>
+            <param>INPUT=casetest.testhb3</param>
+            <param>OUTPUT=/user/${wf:user()}/${examplesRoot}/output-data/pig</param>
+        </pig>
+        <ok to="end"/>
+        <error to="fail"/>
+    </action>
+    <action name="fs-node" cred="hive_credentials">
+    <fs>
+       <mkdir path="${nameNode}/user/${wf:user()}/testfs_mkdir" /> 
+       <touchz path="${nameNode}/user/${wf:user()}/testfs_touchz" /> 
+    </fs> 
+    <ok to="end"/> 
+    <error to="fail"/>
+    </action> 
+    <kill name="fail">
+        <message>Pig failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
+    </kill>
+    <end name="end"/>
+</workflow-app>

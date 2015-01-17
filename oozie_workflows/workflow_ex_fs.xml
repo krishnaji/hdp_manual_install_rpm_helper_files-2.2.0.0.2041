@@ -1,0 +1,41 @@
+<workflow-app xmlns='uri:oozie:workflow:0.4' name='fs'>
+        <start to="fs2" />
+        <action name="fs2">
+        <fs>
+        <name-node>${nameNode}</name-node>
+            <!-- move command wants scheme in its source path if the above <name-node> is not set -->
+            <mkdir path='/user/${wf:user()}/${testName}/mkdir1'/>
+
+            <!-- as of oozie 3.3+, touchz uses absolute paths only -->
+            <touchz path='/user/${wf:user()}/${testName}/touchz1'/>
+
+            <!-- as of oozie 4.0, chmod also wants absolute paths -->
+            <chmod path='/user/${wf:user()}/${testName}' permissions='-rwxrw-rw-'>
+                <recursive/>
+            </chmod>
+
+            <!-- source wants fully qualified absolute path with scheme, while target abs path is optional.
+                    Relative path is relative to the home user's directory -->
+            <move source='${nameNode}/user/${wf:user()}/${testName}/touchz1' target='${testName}/move0'/>
+
+            <!-- try moving a file to the workflow id -->
+            <touchz path='/user/${wf:user()}/${testName}/touchz2'/>
+            <move source='${nameNode}/user/${wf:user()}/${testName}/touchz2' target='${testName}/${wf:id()}'/>
+
+            <!-- just so we can test delete -->
+            <touchz path='/user/${wf:user()}/${testName}/touchz3'/>
+            <delete path='/user/${wf:user()}/${testName}/touchz3'/>
+
+            <touchz path='/user/${wf:user()}/${testName}/FS_COMMANDS_PASSED'/>
+
+        </fs>
+            <ok to="end" />
+            <error to="fail" />
+
+        </action>
+
+        <kill name="fail">
+           <message>QA: FS workflow, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
+        </kill>
+        <end name="end" />
+</workflow-app>
